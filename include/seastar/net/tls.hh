@@ -32,6 +32,8 @@
 #include <seastar/util/std-compat.hh>
 #include <seastar/net/api.hh>
 
+#include <gnutls/gnutls.h>
+
 namespace seastar {
 
 class socket;
@@ -137,6 +139,9 @@ namespace tls {
         certificate_credentials();
         ~certificate_credentials();
 
+        using maker = std::function<shared_ptr<tls::certificate_credentials>(const char* server_name, gnutls_session_t sess)>;
+        certificate_credentials(certificate_credentials::maker _credentials_maker);
+
         certificate_credentials(certificate_credentials&&) noexcept;
         certificate_credentials& operator=(certificate_credentials&&) noexcept;
 
@@ -170,6 +175,7 @@ namespace tls {
         friend class server_credentials;
         friend class credentials_builder;
         std::unique_ptr<impl> _impl;
+        maker _credentials_maker;
     };
 
     /** Exception thrown on certificate validation error */
@@ -190,6 +196,8 @@ namespace tls {
     public:
         server_credentials(shared_ptr<dh_params>);
         server_credentials(const dh_params&);
+
+        server_credentials(certificate_credentials::maker credentials_maker) : certificate_credentials(credentials_maker) {}
 
         server_credentials(server_credentials&&) noexcept;
         server_credentials& operator=(server_credentials&&) noexcept;

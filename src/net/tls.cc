@@ -340,6 +340,11 @@ tls::certificate_credentials::certificate_credentials()
         : _impl(std::make_unique<impl>()) {
 }
 
+tls::certificate_credentials::certificate_credentials(certificate_credentials::maker _credentials_maker) 
+    : _impl(std::make_unique<impl>())
+    , _credentials_maker(_credentials_maker) {
+}
+
 tls::certificate_credentials::~certificate_credentials() {
 }
 
@@ -566,9 +571,13 @@ public:
                 return session;
             }(), &gnutls_deinit) {
         gtls_chk(gnutls_set_default_priority(*this));
-        gtls_chk(
-                gnutls_credentials_set(*this, GNUTLS_CRD_CERTIFICATE,
+        if (_creds->_credentials_maker) { // if credentials_maker is defined - make credentials run-time
+            gnutls_handshake_set_hook_function(*this, GNUTLS_HANDSHAKE_CLIENT_HELLO, GNUTLS_HOOK_PRE, handshake_hook_func);
+        } else { // otherwise set static credentials
+            gtls_chk(
+                    gnutls_credentials_set(*this, GNUTLS_CRD_CERTIFICATE,
                         *_creds->_impl));
+        }
         if (_type == type::SERVER) {
             switch (_creds->_impl->get_client_auth()) {
                 case client_auth::NONE:
@@ -608,6 +617,44 @@ public:
     }
 
     ~session() {}
+
+    char handshake_host_name[512] = {0};
+    static int parse_hook_func(void *ctx, unsigned tls_id, const unsigned char *data, unsigned size)
+    {
+        if (tls_id == 0) { /* server name */
+            session* thiz = static_cast<session*>(ctx);
+            /* figure the advertized name - the following hack
+             * relies on the fact that this extension only supports
+             * DNS names, and due to a protocol bug cannot be extended
+             * to support anything else. */
+            if (size < 5) return 0;
+            size -= 5;
+            if (size > sizeof(thiz->handshake_host_name)-1) size = sizeof(thiz->handshake_host_name)-1;
+            memcpy(thiz->handshake_host_name, data+5, size);
+            thiz->handshake_host_name[size] = 0;
+        }
+        return 0;
+    }
+
+    static int handshake_hook_func(gnutls_session_t sess, unsigned int htype,
+                unsigned when, unsigned int incoming, const gnutls_datum_t *msg)
+        {
+            assert(htype == GNUTLS_HANDSHAKE_CLIENT_HELLO);
+            assert(when == GNUTLS_HOOK_PRE);
+
+            session* thiz = static_cast<session*>(gnutls_transport_get_ptr(sess));
+            thiz->handshake_host_name[0] = 0;
+            if(gnutls_ext_raw_parse(thiz, parse_hook_func, msg, GNUTLS_EXT_RAW_FLAG_TLS_CLIENT_HELLO) != GNUTLS_E_SUCCESS) {
+                return -1;
+            }
+
+            if (!strlen(thiz->handshake_host_name)) return -1;
+            sstring crt_file, key_file;
+            auto creds = thiz->_creds->_credentials_maker(thiz->handshake_host_name, sess);
+
+            thiz->_creds->_impl = std::move(creds->_impl);
+            return gnutls_credentials_set(sess, GNUTLS_CRD_CERTIFICATE, *thiz->_creds->_impl);
+        }
 
     typedef temporary_buffer<char> buf_type;
 
@@ -1132,6 +1179,7 @@ public:
     }
 private:
     shared_ptr<server_credentials> _creds;
+    std::function<void(sstring server_name, gnutls_session_t sess)> _credentials_maker;
     server_socket _sock;
 };
 
