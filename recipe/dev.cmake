@@ -98,8 +98,8 @@ cooking_ingredient (libpciaccess
 cooking_ingredient (nettle
   REQUIRES gmp
   EXTERNAL_PROJECT_ARGS
-    URL https://ftp.gnu.org/gnu/nettle/nettle-3.4.tar.gz
-    URL_MD5 dc0f13028264992f58e67b4e8915f53d
+    URL https://ftp.gnu.org/gnu/nettle/nettle-3.4.1.tar.gz
+    URL_MD5 9bdebb0e2f638d3b9d91f7fc264b70c1
     CONFIGURE_COMMAND
       <SOURCE_DIR>/configure
       --prefix=<INSTALL_DIR>
@@ -134,8 +134,8 @@ cooking_ingredient (zlib
 cooking_ingredient (Boost
   EXTERNAL_PROJECT_ARGS
     # The 1.67.0 release has a bug in Boost Lockfree around a missing header.
-    URL https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
-    URL_MD5 319c6ffbbeccc366f14bb68767a6db79
+    URL https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz
+    URL_MD5 5d8b4503582fffa9eefdb9045359c239
     PATCH_COMMAND
       ./bootstrap.sh
       --prefix=<INSTALL_DIR>
@@ -158,8 +158,8 @@ cooking_ingredient (GnuTLS
     gmp
     nettle
   EXTERNAL_PROJECT_ARGS
-    URL https://www.gnupg.org/ftp/gcrypt/gnutls/v3.5/gnutls-3.5.18.tar.xz
-    URL_MD5 c2d93d305ecbc55939bc2a8ed4a76a3d
+    URL https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.5.tar.xz
+    URL_MD5 3474849e1bbd4d16403b82ab2579000b
     CONFIGURE_COMMAND
      ${CMAKE_COMMAND} -E env ${PKG_CONFIG_PATH}
       <SOURCE_DIR>/configure
@@ -225,8 +225,8 @@ cooking_ingredient (yaml-cpp
     -DYAML_CPP_BUILD_TESTS=OFF
     -DBUILD_SHARED_LIBS=ON
   EXTERNAL_PROJECT_ARGS
-    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
-    URL_MD5 2bba14e6a7f12c7272f87d044e4a7211)
+    URL https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
+    URL_MD5 5b943e9af0060d0811148b037449ef82)
 
 ##
 ## Public dependencies.
